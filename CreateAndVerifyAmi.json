@@ -1,0 +1,71 @@
+{
+  "Comment": "This is your state machine",
+  "StartAt": "Lambda Invoke",
+  "States": {
+    "Lambda Invoke": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "ARN:amibACKUP"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Lambda Invoke (1)"
+    },
+    "Lambda Invoke (1)": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "ARN:AMIvERIFICATION"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "LambdaServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice",
+      "ResultPath": "$.isAvaliable"
+    },
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.isAvaliable.Payload.isAvaliable",
+          "BooleanEquals": false,
+          "Next": "Wait"
+        }
+      ],
+      "Default": "Pass",
+      "InputPath": "$"
+    },
+    "Wait": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "Lambda Invoke (1)"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}.

@@ -1,0 +1,77 @@
+{
+  "Comment": "This is your state machine",
+  "StartAt": "Lambda Invoke",
+  "States": {
+    "Lambda Invoke": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "ARN:SCALEDOWN"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Wait (1)"
+    },
+    "Wait (1)": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "Lambda Invoke (1)"
+    },
+    "Lambda Invoke (1)": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "Payload.$": "$",
+        "FunctionName": "ARN:SCHEDULEVERIFICATION"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2
+        }
+      ],
+      "Next": "Choice",
+      "OutputPath": "$.allASGSchedule",
+      "ResultPath": "$.allASGSchedule"
+    },
+    "Choice": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Payload.allASGScheduled",
+          "BooleanEquals": false,
+          "Next": "Wait"
+        }
+      ],
+      "Default": "Pass",
+      "InputPath": "$"
+    },
+    "Wait": {
+      "Type": "Wait",
+      "Seconds": 120,
+      "Next": "Lambda Invoke (1)"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}L
